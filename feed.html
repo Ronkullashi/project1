@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Feed</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f9fc;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .post {
+      max-width: 500px;
+      margin: 0 auto 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+
+    .author-link {
+      color: #4e89ff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .interaction {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .comment {
+      background: #f1f1f1;
+      padding: 6px;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+
+    button {
+      background-color: #888;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📰 Feed</h2>
+  <div id="feed"></div>
+
+  <button onclick="goBack()">⬅️ Back</button>
+
+  <script>
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+    const currentUser = localStorage.getItem("currentUser");
+
+    if (!currentUser || !users[currentUser]) {
+      window.location.href = "auth.html";
+    }
+
+    const feedContainer = document.getElementById("feed");
+    const following = users[currentUser].following || [];
+    let feedPosts = [];
+
+    following.forEach(email => {
+      const user = users[email];
+      if (user) {
+        user.posts.forEach((post, index) => {
+          post.likes = post.likes || { count: 0, by: [] };
+          post.comments = post.comments || [];
+
+          feedPosts.push({
+            authorName: user.name,
+            authorEmail: email,
+            postIndex: index,
+            content: post.content,
+            image: post.image,
+            likes: post.likes,
+            comments: post.comments,
+            timestamp: post.timestamp
+          });
+        });
+      }
+    });
+
+    feedPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).reverse();
+
+    function renderFeed() {
+      feedContainer.innerHTML = feedPosts.map((post, i) => `
+        <div class="post">
+          <span class="author-link" onclick="viewProfile('${post.authorEmail}')">${post.authorName}</span>
+          <p>${post.content}</p>
+          ${post.image ? `<img src="${post.image}" style="width:100%;margin-top:10px;border-radius:8px;" />` : ''}
+          <div class="interaction">
+            <button onclick="toggleLike(${i})">
+              ❤️ ${post.likes.count || 0}
+            </button>
+            <input id="comment-input-${i}" type="text" placeholder="Add a comment..." />
+            <button onclick="addComment(${i})">💬</button>
+          </div>
+          <div>
+            ${post.comments.map(c => `<div class="comment"><strong>${c.by}:</strong> ${c.text}</div>`).join('')}
+          </div>
+          <small>${new Date(post.timestamp).toLocaleString()}</small>
+        </div>
+      `).join('');
+    }
+
+    function toggleLike(i) {
+      const email = feedPosts[i].authorEmail;
+      const postIndex = feedPosts[i].postIndex;
+      const post = users[email].posts[postIndex];
+      post.likes = post.likes || { count: 0, by: [] };
+
+      if (post.likes.by.includes(currentUser)) {
+        post.likes.by = post.likes.by.filter(e => e !== currentUser);
+        post.likes.count--;
+      } else {
+        post.likes.by.push(currentUser);
+        post.likes.count++;
+      }
+
+      localStorage.setItem("users", JSON.stringify(users));
+      renderFeed();
+    }
+
+    function addComment(i) {
+      const email = feedPosts[i].authorEmail;
+      const postIndex = feedPosts[i].postIndex;
+      const input = document.getElementById(`comment-input-${i}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      users[email].posts[postIndex].comments = users[email].posts[postIndex].comments || [];
+      users[email].posts[postIndex].comments.push({ by: users[currentUser].name, text });
+      input.value = '';
+      localStorage.setItem("users", JSON.stringify(users));
+      renderFeed();
+    }
+
+    function viewProfile(email) {
+      localStorage.setItem("viewProfile", email);
+      window.location.href = "profile.html";
+    }
+
+    function goBack() {
+      window.location.href = "index.html";
+    }
+
+    renderFeed();
+  </script>
+</body>
+</html>

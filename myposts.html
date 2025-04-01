@@ -1,0 +1,263 @@
+<!-- myposts.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Panther</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 40px;
+      background-color: #f8f9fc;
+      text-align: center;
+    }
+
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+
+    .post {
+      max-width: 500px;
+      margin: 0 auto 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      text-align: left;
+      position: relative;
+    }
+
+    .interaction {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .comment {
+      background: #f1f1f1;
+      padding: 6px;
+      border-radius: 6px;
+      margin-top: 6px;
+      position: relative;
+    }
+
+    .delete-comment {
+      position: absolute;
+      right: 8px;
+      top: 5px;
+      font-size: 0.8em;
+      cursor: pointer;
+      color: red;
+    }
+
+    button, input[type="file"] {
+      margin-top: 10px;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 1rem;
+      border: none;
+    }
+
+    #upload-btn {
+      background: #4e89ff;
+      color: white;
+    }
+
+    #back-btn {
+      margin-top: 30px;
+      background: #888;
+      color: white;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: #ff6b6b;
+      color: white;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+    }
+
+    .delete-btn:hover, .delete-comment:hover {
+      background: #e04848;
+    }
+
+    .request {
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 10px;
+      margin: 10px auto;
+      max-width: 400px;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .request button {
+      margin: 5px;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-info">
+    <img id="profile-pic" src="https://via.placeholder.com/100?text=?" class="profile-pic" />
+    <br>
+    <input type="file" id="pic-upload" accept="image/*"><br>
+    <button id="upload-btn" onclick="uploadProfilePic()">Upload Profile Picture</button>
+
+    <h2>My Panther: <span id="username"></span></h2>
+    <div class="counters">
+      Followers: <span id="follower-count">0</span> | Following: <span id="following-count">0</span>
+    </div>
+  </div>
+
+  <div id="requests-section"></div>
+
+  <h3>My Posts</h3>
+  <div id="posts"></div>
+  <button id="back-btn" onclick="goBack()">⬅️ Back</button>
+
+  <script>
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+    const currentUser = localStorage.getItem("currentUser");
+
+    if (!currentUser || !users[currentUser]) window.location.href = "auth.html";
+
+    const user = users[currentUser];
+    document.getElementById("username").textContent = user.name;
+    document.getElementById("following-count").textContent = user.following.length;
+    document.getElementById("follower-count").textContent = Object.keys(users).filter(u => users[u].following.includes(currentUser)).length;
+
+    if (user.profilePic) document.getElementById("profile-pic").src = user.profilePic;
+
+    function uploadProfilePic() {
+      const file = document.getElementById("pic-upload").files[0];
+      if (!file) return alert("Choose a picture!");
+
+      const reader = new FileReader();
+      reader.onloadend = function () {
+        users[currentUser].profilePic = reader.result;
+        localStorage.setItem("users", JSON.stringify(users));
+        document.getElementById("profile-pic").src = reader.result;
+        alert("Profile picture updated!");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function goBack() {
+      window.location.href = "index.html";
+    }
+
+    function toggleLike(index) {
+      const post = user.posts[index];
+      post.likes = post.likes || { count: 0, by: [] };
+
+      if (post.likes.by.includes(currentUser)) {
+        post.likes.by = post.likes.by.filter(e => e !== currentUser);
+        post.likes.count--;
+      } else {
+        post.likes.by.push(currentUser);
+        post.likes.count++;
+      }
+
+      localStorage.setItem("users", JSON.stringify(users));
+      renderPosts();
+    }
+
+    function addComment(index) {
+      const input = document.getElementById(`comment-input-${index}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      user.posts[index].comments = user.posts[index].comments || [];
+      user.posts[index].comments.push({ by: user.name, text });
+      input.value = '';
+      localStorage.setItem("users", JSON.stringify(users));
+      renderPosts();
+    }
+
+    function deletePost(index) {
+      if (confirm("Delete this post?")) {
+        user.posts.splice(index, 1);
+        localStorage.setItem("users", JSON.stringify(users));
+        renderPosts();
+      }
+    }
+
+    function deleteComment(postIndex, commentIndex) {
+      user.posts[postIndex].comments.splice(commentIndex, 1);
+      localStorage.setItem("users", JSON.stringify(users));
+      renderPosts();
+    }
+
+    function handleFollowRequests() {
+      const requests = user.requests || [];
+      const section = document.getElementById("requests-section");
+
+      if (!requests.length) {
+        section.innerHTML = "";
+        return;
+      }
+
+      section.innerHTML = "<h3>Follow Requests</h3>" + requests.map(email => `
+        <div class="request">
+          ${email}
+          <br>
+          <button onclick="acceptRequest('${email}')">✅ Accept</button>
+          <button onclick="declineRequest('${email}')">❌ Decline</button>
+        </div>
+      `).join('');
+    }
+
+    function acceptRequest(email) {
+      users[currentUser].followers = users[currentUser].followers || [];
+      users[currentUser].followers.push(email);
+      users[email].following.push(currentUser);
+      users[currentUser].requests = users[currentUser].requests.filter(e => e !== email);
+      localStorage.setItem("users", JSON.stringify(users));
+      handleFollowRequests();
+      renderPosts();
+    }
+
+    function declineRequest(email) {
+      users[currentUser].requests = users[currentUser].requests.filter(e => e !== email);
+      localStorage.setItem("users", JSON.stringify(users));
+      handleFollowRequests();
+    }
+
+    function renderPosts() {
+      const postHtml = user.posts.map((post, i) => `
+        <div class="post">
+          <button class="delete-btn" onclick="deletePost(${i})">Delete</button>
+          <strong>${user.name}</strong>
+          <p>${post.content}</p>
+          ${post.image ? `<img src="${post.image}" width="100%" style="margin-top:10px;border-radius:8px;" />` : ''}
+          <div class="interaction">
+            <button onclick="toggleLike(${i})">❤️ ${post.likes?.count || 0}</button>
+            <input id="comment-input-${i}" type="text" placeholder="Add a comment..." />
+            <button onclick="addComment(${i})">💬</button>
+          </div>
+          <div>
+            ${(post.comments || []).map((c, j) => `
+              <div class="comment">
+                <strong>${c.by}:</strong> ${c.text}
+                <span class="delete-comment" onclick="deleteComment(${i}, ${j})">❌</span>
+              </div>
+            `).join('')}
+          </div>
+          <small>${new Date(post.timestamp).toLocaleString()}</small>
+        </div>
+      `).join('');
+
+      document.getElementById("posts").innerHTML = postHtml;
+    }
+
+    handleFollowRequests();
+    renderPosts();
+  </script>
+</body>
+</html>

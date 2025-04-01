@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Profile</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 40px; text-align: center; background: #f8f9fc; }
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+    .post {
+      max-width: 500px;
+      margin: 0 auto 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+    .interaction {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .comment {
+      background: #f1f1f1;
+      padding: 6px;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+    button {
+      margin-top: 20px;
+      background-color: #888;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <img id="profile-pic" class="profile-pic" />
+  <h2 id="profile-name"></h2>
+
+  <h3>User’s Posts</h3>
+  <div id="user-posts"></div>
+
+  <button onclick="goBack()">⬅️ Back to Feed</button>
+
+  <script>
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+    const email = localStorage.getItem("viewProfile");
+    const currentUser = localStorage.getItem("currentUser");
+
+    if (!email || !users[email]) {
+      alert("User not found!");
+      window.location.href = "feed.html";
+    }
+
+    const user = users[email];
+    document.getElementById("profile-name").textContent = user.name;
+    document.getElementById("profile-pic").src = user.profilePic || "https://via.placeholder.com/100?text=?";
+
+    function renderProfile() {
+      const posts = user.posts.map((post, i) => {
+        post.likes = post.likes || { count: 0, by: [] };
+        return `
+        <div class="post">
+          <strong>${user.name}</strong>
+          <p>${post.content}</p>
+          ${post.image ? `<img src="${post.image}" style="width:100%;margin-top:10px;border-radius:8px;" />` : ''}
+          <div class="interaction">
+            <button onclick="toggleLike(${i})">❤️ ${post.likes.count}</button>
+            <input id="comment-input-${i}" type="text" placeholder="Add a comment..." />
+            <button onclick="addComment(${i})">💬</button>
+          </div>
+          <div>
+            ${(post.comments || []).map(c => `<div class="comment"><strong>${c.by}:</strong> ${c.text}</div>`).join('')}
+          </div>
+          <small>${new Date(post.timestamp).toLocaleString()}</small>
+        </div>
+      `}).join('');
+
+      document.getElementById("user-posts").innerHTML = posts;
+    }
+
+    function toggleLike(i) {
+      const post = user.posts[i];
+      post.likes = post.likes || { count: 0, by: [] };
+
+      if (post.likes.by.includes(currentUser)) {
+        post.likes.by = post.likes.by.filter(e => e !== currentUser);
+        post.likes.count--;
+      } else {
+        post.likes.by.push(currentUser);
+        post.likes.count++;
+      }
+
+      localStorage.setItem("users", JSON.stringify(users));
+      renderProfile();
+    }
+
+    function addComment(i) {
+      const input = document.getElementById(`comment-input-${i}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      user.posts[i].comments = user.posts[i].comments || [];
+      user.posts[i].comments.push({ by: users[currentUser].name, text });
+      input.value = '';
+      localStorage.setItem("users", JSON.stringify(users));
+      renderProfile();
+    }
+
+    function goBack() {
+      window.location.href = "feed.html";
+    }
+
+    renderProfile();
+  </script>
+</body>
+</html>

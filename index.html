@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Blogging Site</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f9fc;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+    }
+
+    .btn {
+      margin: 10px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      background-color: #648fff;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #4e76e8;
+    }
+
+    .section {
+      margin-top: 40px;
+    }
+
+    input[type="text"], textarea {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      width: 300px;
+      font-size: 1rem;
+      margin-top: 10px;
+    }
+
+    textarea {
+      height: 100px;
+      resize: none;
+    }
+
+    #logout-btn {
+      background-color: #f66;
+    }
+
+    #logout-btn:hover {
+      background-color: #e05555;
+    }
+
+    .follow-section {
+      margin-top: 20px;
+    }
+
+    .green-btn {
+      background-color: #4caf94;
+    }
+
+    .green-btn:hover {
+      background-color: #3a9c7e;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Welcome to Mini Blogging Site</h1>
+  <p>Select what you'd like to do:</p>
+
+  <div class="section">
+    <a href="myposts.html"><button class="btn">🐾 My Panther</button></a>
+    <a href="feed.html"><button class="btn">📰 Feed</button></a>
+  </div>
+
+  <div class="section">
+    <h3>🔍 Search & Follow Someone...Or Unfollow Someone</h3>
+    <input id="follow-email" placeholder="Enter user email to follow" />
+    <div id="follow-actions">
+      <button class="green-btn" onclick="requestFollow()">Request Follow</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>✍️ Create a New Blog Post</h3>
+    <textarea id="post-text" placeholder="Write something..."></textarea><br>
+    <input type="file" id="image-upload" accept="image/*" />
+    <br>
+    <button class="btn" onclick="createPost()">Post</button>
+  </div>
+
+  <br>
+  <button id="logout-btn" onclick="logout()">📕 Log Out</button>
+
+  <script>
+    const currentUser = localStorage.getItem("currentUser");
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+
+    if (!currentUser || !users[currentUser]) {
+      window.location.href = "auth.html";
+    }
+
+    document.getElementById("follow-email").addEventListener("input", updateFollowAction);
+
+    function createPost() {
+      const text = document.getElementById("post-text").value.trim();
+      const file = document.getElementById("image-upload").files[0];
+
+      if (!text && !file) return alert("Post cannot be empty.");
+
+      const reader = new FileReader();
+      reader.onloadend = function () {
+        const post = {
+          content: text,
+          image: file ? reader.result : null,
+          timestamp: new Date().toISOString(),
+          likes: { count: 0, by: [] },
+          comments: []
+        };
+
+        users[currentUser].posts = users[currentUser].posts || [];
+        users[currentUser].posts.unshift(post);
+        localStorage.setItem("users", JSON.stringify(users));
+
+        document.getElementById("post-text").value = "";
+        document.getElementById("image-upload").value = "";
+        alert("Posted!");
+      };
+
+      if (file) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.onloadend();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("currentUser");
+      window.location.href = "auth.html";
+    }
+
+    function requestFollow() {
+      const email = document.getElementById("follow-email").value.trim();
+      if (!email || !users[email]) return alert("User not found.");
+
+      if (email === currentUser) return alert("You can't follow yourself.");
+
+      const sender = users[currentUser];
+      const receiver = users[email];
+
+      receiver.requests = receiver.requests || [];
+      if (receiver.requests.includes(currentUser)) return alert("Follow request already sent.");
+      if (sender.following.includes(email)) return alert("You're already following this user.");
+
+      receiver.requests.push(currentUser);
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Follow request sent.");
+      updateFollowAction();
+    }
+
+    function unfollowUser() {
+      const email = document.getElementById("follow-email").value.trim();
+      const sender = users[currentUser];
+
+      sender.following = sender.following.filter(e => e !== email);
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Unfollowed.");
+      updateFollowAction();
+    }
+
+    function updateFollowAction() {
+      const email = document.getElementById("follow-email").value.trim();
+      const followActions = document.getElementById("follow-actions");
+
+      if (!email || !users[email] || email === currentUser) {
+        followActions.innerHTML = `<button class="green-btn" onclick="requestFollow()">Request Follow</button>`;
+        return;
+      }
+
+      const following = users[currentUser].following || [];
+      if (following.includes(email)) {
+        followActions.innerHTML = `<button class="green-btn" onclick="unfollowUser()">Unfollow</button>`;
+      } else {
+        followActions.innerHTML = `<button class="green-btn" onclick="requestFollow()">Request Follow</button>`;
+      }
+    }
+  </script>
+</body>
+</html>

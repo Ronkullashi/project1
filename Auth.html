@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MiniBlog Auth</title>
+  <style>
+    body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #fefcf8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 60px 20px;
+    }
+
+    img.logo {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 25px;
+  border: 4px solid #001f5b;       /* York Prep navy blue */
+  border-radius: 50%;
+  padding: 6px;
+  background: #fefcf8;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+img.logo:hover {
+  transform: scale(1.1) rotate(3deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+
+
+    .auth-box {
+      background: #fff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #648fff;
+      color: white;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #4e76e8;
+    }
+
+    h4 {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ✅ York Prep Logo -->
+  <a href="https://www.yorkprep.org" target="_blank" class="logo-link">
+    <img src="YP-logo.png" alt="York Prep Logo" class="logo" />
+  </a>
+
+  <div class="auth-box">
+    <h2>Panther Social</h2>
+
+    <h4>Create Account</h4>
+    <input id="signup-name" placeholder="Name" />
+    <input id="signup-email" placeholder="Email" />
+    <input id="signup-password" type="password" placeholder="Password" />
+    <button onclick="signUp()">Sign Up</button>
+
+    <h4>Already a user?</h4>
+    <input id="login-email" placeholder="Email" />
+    <input id="login-password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <script>
+    function signUp() {
+      const name = document.getElementById("signup-name").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value;
+
+      if (!name || !email || !password) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      let users = JSON.parse(localStorage.getItem("users")) || {};
+      if (users[email]) {
+        alert("Account already exists.");
+        return;
+      }
+
+      users[email] = {
+        name,
+        email,
+        password,
+        posts: [],
+        following: [],
+        followers: [],
+        requests: []
+      };
+
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Account created! You can now log in.");
+    }
+
+    function login() {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+
+      let users = JSON.parse(localStorage.getItem("users")) || {};
+
+      if (!users[email] || users[email].password !== password) {
+        alert("Invalid email or password.");
+        return;
+      }
+
+      localStorage.setItem("currentUser", email);
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
+
