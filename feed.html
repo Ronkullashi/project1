@@ -2,29 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Feed</title>
+  <title>Feed - Panther Social</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f8f9fc;
-      padding: 40px;
-      text-align: center;
+      background: #fefcf8;
+      margin: 0;
+      padding: 20px;
     }
 
-    .post {
-      max-width: 500px;
-      margin: 0 auto 20px;
-      padding: 15px;
-      background: #fff;
+    h2 {
+      text-align: center;
+      color: #001f5b;
+    }
+
+    .post-card {
+      background: white;
       border-radius: 14px;
-      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 16px;
       text-align: left;
     }
 
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .post-header img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #001f5b;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+    }
+
     .author-link {
-      color: #4e89ff;
-      cursor: pointer;
+      color: #001f5b;
       font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .post-card img.post-image {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
     }
 
     .interaction {
@@ -40,6 +68,19 @@
       border: 1px solid #ccc;
     }
 
+    button {
+      background-color: #648fff;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #4e76e8;
+    }
+
     .comment {
       background: #f1f1f1;
       padding: 6px;
@@ -47,34 +88,23 @@
       margin-top: 6px;
     }
 
-    button {
-      background-color: #888;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #555;
+    .back-btn {
+      display: block;
+      margin: 30px auto;
+      background-color: #444;
     }
   </style>
 </head>
 <body>
-
-  <h2>📰 Feed</h2>
+  <h2>Feed</h2>
   <div id="feed"></div>
-
-  <button onclick="goBack()">⬅️ Back</button>
+  <button class="back-btn" onclick="goBack()">Back</button>
 
   <script>
     let users = JSON.parse(localStorage.getItem("users")) || {};
     const currentUser = localStorage.getItem("currentUser");
 
-    if (!currentUser || !users[currentUser]) {
-      window.location.href = "auth.html";
-    }
+    if (!currentUser || !users[currentUser]) window.location.href = "auth.html";
 
     const feedContainer = document.getElementById("feed");
     const following = users[currentUser].following || [];
@@ -86,7 +116,6 @@
         user.posts.forEach((post, index) => {
           post.likes = post.likes || { count: 0, by: [] };
           post.comments = post.comments || [];
-
           feedPosts.push({
             authorName: user.name,
             authorEmail: email,
@@ -105,16 +134,17 @@
 
     function renderFeed() {
       feedContainer.innerHTML = feedPosts.map((post, i) => `
-        <div class="post">
-          <span class="author-link" onclick="viewProfile('${post.authorEmail}')">${post.authorName}</span>
+        <div class="post-card">
+          <div class="post-header">
+            <img src="${users[post.authorEmail].profilePic || 'https://via.placeholder.com/40?text=?'}" alt="profile" />
+            <span class="author-link" onclick="viewProfile('${post.authorEmail}')">${post.authorName}</span>
+          </div>
           <p>${post.content}</p>
-          ${post.image ? `<img src="${post.image}" style="width:100%;margin-top:10px;border-radius:8px;" />` : ''}
+          ${post.image ? `<img class="post-image" src="${post.image}" />` : ''}
           <div class="interaction">
-            <button onclick="toggleLike(${i})">
-              ❤️ ${post.likes.count || 0}
-            </button>
+            <button onclick="toggleLike(${i})">❤️ ${post.likes.count}</button>
             <input id="comment-input-${i}" type="text" placeholder="Add a comment..." />
-            <button onclick="addComment(${i})">💬</button>
+            <button onclick="addComment(${i})">Comment</button>
           </div>
           <div>
             ${post.comments.map(c => `<div class="comment"><strong>${c.by}:</strong> ${c.text}</div>`).join('')}
